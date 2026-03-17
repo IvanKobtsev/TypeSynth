@@ -1,0 +1,25 @@
+{
+  "name": "hbs-magic",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "hbs-magic": "./dist/bin/cli.js"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "17.0.24",
+    "@types/node-fetch": "^2.6.13",
+    "ts-morph": "^27.0.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "esbuild": "^0.27.4",
+    "handlebars": "^4.7.8",
+    "node-fetch": "^3.3.2",
+    "prettier": "^3.8.1",
+    "ts-node": "^10.9.2"
+  }
+}
