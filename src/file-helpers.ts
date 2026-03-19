@@ -33,6 +33,10 @@ export async function getDefaultExport(source: string) {
       bundle: true,
       platform: "node",
       format: "esm",
+      packages: "external",
+      banner: {
+        js: 'import { createRequire as __createRequire } from "module"; const require = __createRequire(import.meta.url);',
+      },
     });
 
     const defaultExport = (await import(pathToFileURL(tempFile).href)).default;
@@ -46,7 +50,7 @@ export async function getDefaultExport(source: string) {
 
 export async function runPreparationScript(fullPath: string) {
   const preparationScript = await getDefaultExport(fullPath);
-  if (typeof preparationScript === "function") await preparationScript();
+  if (typeof preparationScript === "function") return await preparationScript();
   else
     throw new Error(
       `Failed to run preparation script: ${fullPath}. Default export is not a function.`,
@@ -75,8 +79,13 @@ export function getAllHbsPartialsInFolder(folder: string) {
   return partials;
 }
 
-export function getHbsHelpersAndTemplatePaths(hbsFolder: string) {
+export function getInputDataPath(hbsFolder: string) {
   const inputPath = path.join(hbsFolder, "input-data.json");
+
+  return fs.existsSync(inputPath) ? inputPath : undefined;
+}
+
+export function getHbsHelpersAndTemplatePaths(hbsFolder: string) {
   const preparationScriptPath = path.join(hbsFolder, "preparation-script.ts");
   const helpersPath = path.join(hbsFolder, "hbs-helpers.ts");
   const templatePath = path.join(hbsFolder, "template.hbs");
@@ -87,7 +96,6 @@ export function getHbsHelpersAndTemplatePaths(hbsFolder: string) {
   }
 
   return {
-    inputPath: fs.existsSync(inputPath) ? inputPath : undefined,
     preparationScriptPath: fs.existsSync(preparationScriptPath)
       ? preparationScriptPath
       : undefined,

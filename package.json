@@ -7,16 +7,23 @@
     "hbs-magic": "./dist/bin/cli.js"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "render-examples": "tsc && npm run assets-helper && npm run ts-api-client && npm run csharp-url-helpers",
+    "csharp-url-helpers": "hbs-magic --hbs=examples/advanced_csharp-url-helpers/input --output=examples/advanced_csharp-url-helpers/Result.gen.cs",
+    "ts-api-client": "hbs-magic --input=https://petstore3.swagger.io/api/v3/openapi.json --hbs=examples/from-api_ts-api-client/input --output=examples/from-api_ts-api-client/Result.gen.ts",
+    "assets-helper": "hbs-magic --hbs=examples/simple_assets-helper/input --output=examples/simple_assets-helper/Result.gen.ts"
   },
   "devDependencies": {
     "@types/node": "17.0.24",
     "@types/node-fetch": "^2.6.13",
+    "react-router-url-params": "^0.9.2",
     "ts-morph": "^27.0.2",
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "concurrently": "^9.2.1",
     "esbuild": "^0.27.4",
+    "esbuild-register": "^3.6.0",
     "handlebars": "^4.7.8",
     "node-fetch": "^3.3.2",
     "prettier": "^3.8.1",

@@ -24,7 +24,20 @@ const csExtensions = [".cs"];
 function formatCsFileWithCSharpier(filePath: string) {
   const resolved = path.resolve(filePath);
 
-  execSync(`dotnet csharpier format "${resolved}"`, {
+  const toolDir = path.join(process.cwd(), ".csharpier");
+
+  if (!fs.existsSync(toolDir)) {
+    fs.mkdirSync(toolDir);
+
+    execSync("dotnet new tool-manifest", { cwd: toolDir, stdio: "ignore" });
+    execSync("dotnet tool install csharpier", {
+      cwd: toolDir,
+      stdio: "ignore",
+    });
+  }
+
+  execSync(`dotnet tool run csharpier format "${resolved}"`, {
+    cwd: toolDir,
     stdio: "inherit",
   });
 }

@@ -1,6 +1,6 @@
 import fs from "fs";
 import Handlebars from "handlebars";
-import { getDefaultExport, getJson } from "./file-helpers.js";
+import { getDefaultExport } from "./file-helpers.js";
 
 export type HbsPartial = {
   name: string;
@@ -25,13 +25,12 @@ export async function registerHbsPartials(partials: HbsPartial[]) {
 
 export async function compileHbsTemplateAndWriteToFile(
   templatePath: string,
-  jsonInputPath: string,
+  inputObject: any,
   outputFilePath: string,
 ) {
   const template = fs.readFileSync(templatePath, "utf8");
   const compiled = Handlebars.compile(template);
 
-  const json = await getJson(jsonInputPath);
-  const result = compiled(json);
+  const result = compiled(inputObject);
   fs.writeFileSync(outputFilePath, result);
 }

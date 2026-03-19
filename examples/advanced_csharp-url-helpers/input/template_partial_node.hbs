@@ -1,0 +1,32 @@
+{{#if (isGroup this)}}
+  public static class {{@key}}
+  {
+  {{#each this}}
+    {{#> node }}
+      Failover content
+    {{/node}}
+  {{/each}}
+  }
+{{/if}}
+
+{{#if (isRoute this)}}
+  public static class {{@key}}
+  {
+  public static string Link(
+  string siteUrl
+  {{#each routeParams}}
+    , {{{csType this}}} {{@key}}
+  {{/each}}
+  {{#if queryParams}}
+    , {{@key}}QueryParams queryParams
+  {{/if}}
+  ) =>
+  siteUrl + "{{route}}"
+  {{#each routeParams}}
+    .Replace(":{{@key}}", {{@key}}.ToString())
+  {{/each}}
+  {{#if queryParams}}
+    + "?" + queryParams.GetQueryString()
+  {{/if}};
+  }
+{{/if}}

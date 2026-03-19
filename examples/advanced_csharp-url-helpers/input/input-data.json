@@ -1,0 +1,244 @@
+{
+  "Routes": {
+    "Unauthorized": {
+      "Login": {
+        "route": "/login",
+        "queryParams": {
+          "redirect": "string"
+        }
+      },
+      "Register": {
+        "route": "/register",
+        "queryParams": {
+          "ref": "string"
+        }
+      },
+      "ConfirmEmail": {
+        "route": "/confirm-email/:userId/:token",
+        "routeParams": {
+          "userId": "string",
+          "token": "string"
+        }
+      },
+      "ForgotPassword": {
+        "route": "/forgot-password"
+      }
+    },
+    "Authorized": {
+      "Dashboard": {
+        "route": "/",
+        "queryParams": {
+          "tab": "string"
+        }
+      },
+      "Profile": {
+        "route": "/profile/:userId",
+        "routeParams": {
+          "userId": "number",
+          "section": "string"
+        }
+      },
+      "Settings": {
+        "route": "/settings",
+        "queryParams": {
+          "page": "string"
+        }
+      },
+      "Courses": {
+        "route": "/courses",
+        "queryParams": {
+          "page": "number",
+          "pageSize": "number",
+          "search": "string",
+          "tags": "array"
+        }
+      },
+      "CourseDetails": {
+        "route": "/courses/:courseId",
+        "routeParams": {
+          "courseId": "number",
+          "tab": "string"
+        }
+      },
+      "CourseNotFound": {
+        "route": "/courses/:courseId/not-found",
+        "routeParams": {
+          "courseId": "number"
+        }
+      },
+      "CourseAccessDenied": {
+        "route": "/courses/:courseId/access-denied",
+        "routeParams": {
+          "courseId": "number"
+        }
+      },
+      "CourseStudents": {
+        "route": "/courses/:courseId/students",
+        "routeParams": {
+          "courseId": "number",
+          "page": "number",
+          "roles": "array"
+        }
+      },
+      "AssignmentList": {
+        "route": "/courses/:courseId/assignments",
+        "routeParams": {
+          "courseId": "number",
+          "status": "string",
+          "dueBefore": "string"
+        }
+      },
+      "AssignmentDetails": {
+        "route": "/courses/:courseId/assignments/:assignmentId",
+        "routeParams": {
+          "courseId": "number",
+          "assignmentId": "number",
+          "tab": "string"
+        }
+      },
+      "AssignmentSubmissions": {
+        "route": "/courses/:courseId/assignments/:assignmentId/submissions",
+        "routeParams": {
+          "courseId": "number",
+          "assignmentId": "number",
+          "page": "number",
+          "userIds": "array"
+        }
+      },
+      "Announcements": {
+        "route": "/courses/:courseId/announcements",
+        "routeParams": {
+          "courseId": "number",
+          "page": "number"
+        }
+      },
+      "AnnouncementDetails": {
+        "route": "/courses/:courseId/announcements/:announcementId",
+        "routeParams": {
+          "courseId": "number",
+          "announcementId": "number",
+          "highlight": "string"
+        }
+      },
+      "Products": {
+        "route": "/products",
+        "queryParams": {
+          "page": "number",
+          "pageSize": "number",
+          "sortBy": "string",
+          "categories": "array",
+          "minPrice": "number",
+          "maxPrice": "number"
+        }
+      },
+      "ProductDetails": {
+        "route": "/products/:id",
+        "routeParams": {
+          "id": "number"
+        }
+      },
+      "CreateProduct": {
+        "route": "/products/create",
+        "queryParams": {
+          "templateId": "number"
+        }
+      },
+      "EditProduct": {
+        "route": "/products/:id/edit",
+        "routeParams": {
+          "id": "number",
+          "mode": "string"
+        }
+      },
+      "Admin": {
+        "route": "/admin",
+        "queryParams": {
+          "tab": "string"
+        }
+      },
+      "AdminUsers": {
+        "route": "/admin/users",
+        "queryParams": {
+          "page": "number",
+          "roles": "array",
+          "search": "string"
+        }
+      },
+      "AdminUserDetails": {
+        "route": "/admin/users/:userId",
+        "routeParams": {
+          "userId": "number",
+          "tab": "string"
+        }
+      },
+      "Notifications": {
+        "route": "/notifications",
+        "queryParams": {
+          "unreadOnly": "boolean"
+        }
+      },
+      "Search": {
+        "route": "/search",
+        "queryParams": {
+          "types": "array",
+          "page": "number"
+        }
+      },
+      "UiKit": {
+        "route": "/uikit",
+        "queryParams": {
+          "component": "string"
+        }
+      }
+    }
+  },
+  "QueryParamCollections": {
+    "Login": {
+      "redirect": "string"
+    },
+    "Register": {
+      "ref": "string"
+    },
+    "Dashboard": {
+      "tab": "string"
+    },
+    "Settings": {
+      "page": "string"
+    },
+    "Courses": {
+      "page": "number",
+      "pageSize": "number",
+      "search": "string",
+      "tags": "array"
+    },
+    "Products": {
+      "page": "number",
+      "pageSize": "number",
+      "sortBy": "string",
+      "categories": "array",
+      "minPrice": "number",
+      "maxPrice": "number"
+    },
+    "CreateProduct": {
+      "templateId": "number"
+    },
+    "Admin": {
+      "tab": "string"
+    },
+    "AdminUsers": {
+      "page": "number",
+      "roles": "array",
+      "search": "string"
+    },
+    "Notifications": {
+      "unreadOnly": "boolean"
+    },
+    "Search": {
+      "types": "array",
+      "page": "number"
+    },
+    "UiKit": {
+      "component": "string"
+    }
+  }
+}

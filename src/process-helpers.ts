@@ -1,12 +1,16 @@
+import {
+  hbsMagicCliUsage,
+  inputDataNotFound,
+  multipleSourcesDetected,
+  positionalArgumentsNotAllowed,
+} from "./cli-messages.js";
+import { getJson } from "./file-helpers.js";
+
 type ParsedArgs = {
   [key: string]: string | boolean | string[];
 };
 
-export function extractArguments(
-  process: NodeJS.Process,
-  required: string[],
-  usage?: string,
-) {
+export function extractArguments(process: NodeJS.Process, required: string[]) {
   const raw = process.argv.slice(2);
 
   const args: ParsedArgs = {};
@@ -17,16 +21,14 @@ export function extractArguments(
 
       args[key] = value ?? true;
     } else {
-      throw new Error(
-        "No positional arguments allowed. Use '--key=value' format.",
-      );
+      throw new Error(positionalArgumentsNotAllowed);
     }
   }
 
   for (const req of required) {
     if (!(req in args)) {
       console.error(`Missing required argument: --${req}`);
-      if (usage) console.error(usage);
+      console.error(hbsMagicCliUsage);
       process.exit(1);
     }
   }
@@ -47,16 +49,24 @@ export function extractArgument(process: NodeJS.Process, argumentName: string) {
   return arg?.split("=")[1] ?? undefined;
 }
 
-export function validateInputs(
-  inputPath: string | undefined,
+export async function validateInputs(
   externalJson: string | undefined,
+  preparationScriptResult: any | undefined,
+  inputPath: string | undefined,
 ) {
-  if (!inputPath && !externalJson)
-    throw new Error(
-      `Found no ".json" input. Please provide input data either by placing a JSON file in your specified hbs folder or by using the "--input" argument.`,
-    );
-  if (inputPath && externalJson)
-    console.warn(
-      `Found both JSON file in your hbs folder and the external json input. Script will prioritize the data specified with "--input" argument.`,
-    );
+  if (!externalJson && !preparationScriptResult && !inputPath)
+    throw new Error(inputDataNotFound);
+
+  const sourcesCount =
+    (externalJson ? 1 : 0) +
+    (preparationScriptResult ? 1 : 0) +
+    (inputPath ? 1 : 0);
+
+  if (sourcesCount > 1) console.warn(multipleSourcesDetected);
+
+  if (externalJson) return await getJson(externalJson);
+
+  if (preparationScriptResult) return preparationScriptResult;
+
+  if (inputPath) return await getJson(inputPath);
 }
