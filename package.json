@@ -1,8 +1,28 @@
 {
   "name": "hbs-magic",
   "version": "0.1.0",
+  "description": "A CLI tool designed to simplify source-generation with Handlebars templates as much as humanly possible.",
+  "keywords": [
+    "source-code-generation",
+    "source-generation",
+    "code-generation",
+    "handlebars",
+    "hbs",
+    "cli",
+    "typescript"
+  ],
+  "homepage": "https://github.com/IvanKobtsev/hbs-magic#readme",
+  "bugs": {
+    "url": "https://github.com/IvanKobtsev/hbs-magic/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IvanKobtsev/hbs-magic.git"
+  },
+  "license": "MIT",
+  "author": "xubarashi",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "./dist/bin/cli.js",
   "bin": {
     "hbs-magic": "./dist/bin/cli.js"
   },

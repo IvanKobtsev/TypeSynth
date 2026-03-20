@@ -14,7 +14,7 @@ import {
   extractArgument,
   extractArguments,
   extractFlag,
-  validateInputs,
+  getInputObject,
 } from "../src/process-helpers.js";
 
 const args = extractArguments(process, ["hbs", "output"]);
@@ -27,13 +27,9 @@ async function main() {
   const { preparationScriptPath, hbsHelpersPath, hbsPartials, templatePath } =
     getHbsHelpersAndTemplatePaths(hbsFolder);
 
-  let preparationScriptResult = undefined;
-  if (preparationScriptPath)
-    preparationScriptResult = await runPreparationScript(preparationScriptPath);
-
-  const inputObject = await validateInputs(
+  const inputObject = await getInputObject(
     externalJson,
-    preparationScriptResult,
+    await runPreparationScript(preparationScriptPath),
     getInputDataPath(hbsFolder),
   );
 

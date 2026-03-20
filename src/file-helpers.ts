@@ -48,7 +48,9 @@ export async function getDefaultExport(source: string) {
   }
 }
 
-export async function runPreparationScript(fullPath: string) {
+export async function runPreparationScript(fullPath: string | undefined) {
+  if (!fullPath) return undefined;
+
   const preparationScript = await getDefaultExport(fullPath);
   if (typeof preparationScript === "function") return await preparationScript();
   else

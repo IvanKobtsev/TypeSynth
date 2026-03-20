@@ -1,5 +1,6 @@
 import {
   hbsMagicCliUsage,
+  hbsMagicHelp,
   inputDataNotFound,
   multipleSourcesDetected,
   positionalArgumentsNotAllowed,
@@ -12,6 +13,11 @@ type ParsedArgs = {
 
 export function extractArguments(process: NodeJS.Process, required: string[]) {
   const raw = process.argv.slice(2);
+
+  if (raw.length === 1 && raw[0] === "--help") {
+    console.log(hbsMagicHelp);
+    process.exit(1);
+  }
 
   const args: ParsedArgs = {};
 
@@ -49,7 +55,7 @@ export function extractArgument(process: NodeJS.Process, argumentName: string) {
   return arg?.split("=")[1] ?? undefined;
 }
 
-export async function validateInputs(
+export async function getInputObject(
   externalJson: string | undefined,
   preparationScriptResult: any | undefined,
   inputPath: string | undefined,
