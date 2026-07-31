@@ -16,12 +16,17 @@ import {
   extractFlag,
   getInputObject,
 } from "../src/process-helpers.js";
+import { GlobalMagicVariables } from "../src/types.js";
 
 const args = extractArguments(process, ["hbs", "output"]);
 const hbsFolder = args.hbs as string;
 const outputFile = args.output as string;
 const formatOutput = !extractFlag(process, "disable-formatting");
 const externalJson = extractArgument(process, "input");
+
+export const globalVariables: GlobalMagicVariables = {
+  magic__checksum: null,
+};
 
 async function main() {
   const { preparationScriptPath, hbsHelpersPath, hbsPartials, templatePath } =
@@ -40,6 +45,8 @@ async function main() {
   await compileHbsTemplateAndWriteToFile(templatePath, inputObject, outputFile);
 
   if (formatOutput) await formatSourceFile(outputFile);
+
+  console.log(`✅  Successfully generated "${outputFile}"`);
 }
 
 main().catch((err) => {

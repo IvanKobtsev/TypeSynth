@@ -1,6 +1,9 @@
 import fs from "fs";
 import Handlebars from "handlebars";
 import { getDefaultExport } from "./file-helpers.js";
+import { globalVariables } from "../bin/cli.js";
+import { getMagicChecksum } from "./index.js";
+import stringify from "json-stable-stringify";
 
 export type HbsPartial = {
   name: string;
@@ -31,6 +34,11 @@ export async function compileHbsTemplateAndWriteToFile(
   const template = fs.readFileSync(templatePath, "utf8");
   const compiled = Handlebars.compile(template);
 
-  const result = compiled(inputObject);
+  if (!globalVariables.magic__checksum)
+    globalVariables.magic__checksum = await getMagicChecksum(
+      stringify(inputObject) ?? "",
+    );
+
+  const result = compiled({ ...globalVariables, ...inputObject });
   fs.writeFileSync(outputFilePath, result);
 }

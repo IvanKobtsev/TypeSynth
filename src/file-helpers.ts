@@ -1,16 +1,18 @@
 ﻿import fs from "fs";
-import fetch from "node-fetch";
+import fetch, { Response } from "node-fetch";
 import https from "https";
 import path from "path";
 import { pathToFileURL } from "url";
 import { build } from "esbuild";
 import { HbsPartial } from "./hbs-process-helpers.js";
+import { globalVariables } from "../bin/cli.js";
+import { getMagicChecksum } from "./index.js";
 
 const agent = new https.Agent({ rejectUnauthorized: false });
 
 export async function getJson(source: string) {
   if (source.startsWith("http://") || source.startsWith("https://")) {
-    let response;
+    let response: Response;
     try {
       response = await fetch(source, { agent });
     } catch (err) {
@@ -18,7 +20,11 @@ export async function getJson(source: string) {
     }
 
     if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-    return await response.json();
+
+    const responseText = await response.text();
+    globalVariables.magic__checksum = await getMagicChecksum(responseText);
+
+    return await JSON.parse(responseText);
   } else {
     return JSON.parse(fs.readFileSync(source, "utf8"));
   }
@@ -26,7 +32,7 @@ export async function getJson(source: string) {
 
 export async function getDefaultExport(source: string) {
   if (source.endsWith(".ts")) {
-    const tempFile = source.replace(/\.ts$/, ".temp.js");
+    const tempFile = source.replace(/\.ts$/, ".temp.mjs");
     await build({
       entryPoints: [source],
       outfile: tempFile,
