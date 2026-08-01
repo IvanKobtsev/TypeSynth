@@ -5,7 +5,7 @@ import path from "path";
 import { pathToFileURL } from "url";
 import { build } from "esbuild";
 import { HbsPartial } from "./hbs-process-helpers.js";
-import { globalVariables } from "../bin/cli.js";
+import { globalVariables } from "./hbs-process-helpers.js";
 import { getMagicChecksum } from "./index.js";
 
 const agent = new https.Agent({ rejectUnauthorized: false });
@@ -32,25 +32,39 @@ export async function getJson(source: string) {
 
 export async function getDefaultExport(source: string) {
   if (source.endsWith(".ts")) {
-    const tempFile = source.replace(/\.ts$/, ".temp.mjs");
-    await build({
-      entryPoints: [source],
-      outfile: tempFile,
-      bundle: true,
-      platform: "node",
-      format: "esm",
-      packages: "external",
-      banner: {
-        js: 'import { createRequire as __createRequire } from "module"; const require = __createRequire(import.meta.url);',
-      },
-    });
+    const tempFolder = fs.mkdtempSync(
+      path.join(path.dirname(path.resolve(source)), ".typesynth-"),
+    );
+    const tempFile = path.join(tempFolder, "script.mjs");
 
-    const defaultExport = (await import(pathToFileURL(tempFile).href)).default;
-    fs.unlinkSync(tempFile);
+    try {
+      await build({
+        absWorkingDir: path.dirname(path.resolve(source)),
+        stdin: {
+          contents: fs.readFileSync(source, "utf8"),
+          resolveDir: path.dirname(path.resolve(source)),
+          sourcefile: path.basename(source),
+          loader: "ts",
+        },
+        outfile: tempFile,
+        bundle: true,
+        platform: "node",
+        format: "esm",
+        packages: "external",
+        banner: {
+          js: 'import { createRequire as __createRequire } from "module"; const require = __createRequire(import.meta.url);',
+        },
+      });
 
-    return defaultExport;
+      return (await import(`${pathToFileURL(tempFile).href}?t=${Date.now()}`))
+        .default;
+    } finally {
+      fs.rmSync(tempFolder, { recursive: true, force: true });
+    }
   } else {
-    return (await import(pathToFileURL(source).href)).default;
+    return (
+      await import(`${pathToFileURL(path.resolve(source)).href}?t=${Date.now()}`)
+    ).default;
   }
 }
 
