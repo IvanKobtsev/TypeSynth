@@ -1,7 +1,7 @@
 {
-  "name": "hbs-magic",
-  "version": "0.2.2",
-  "description": "A CLI tool designed to simplify source-generation with Handlebars templates as much as humanly possible.",
+  "name": "typesynth",
+  "version": "0.1.0",
+  "description": "A TypeScript source-generation framework for eliminating boilerplate and automating repetitive tasks",
   "keywords": [
     "source-code-generation",
     "source-generation",
@@ -11,13 +11,13 @@
     "cli",
     "typescript"
   ],
-  "homepage": "https://github.com/IvanKobtsev/hbs-magic#readme",
+  "homepage": "https://github.com/IvanKobtsev/TypeSynth#readme",
   "bugs": {
-    "url": "https://github.com/IvanKobtsev/hbs-magic/issues"
+    "url": "https://github.com/IvanKobtsev/TypeSynth/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/IvanKobtsev/hbs-magic.git"
+    "url": "git+https://github.com/IvanKobtsev/TypeSynth.git"
   },
   "license": "MIT",
   "author": "xubarashi",
@@ -25,14 +25,14 @@
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
   "bin": {
-    "hbs-magic": "./dist/bin/cli.js"
+    "tsynth": "./dist/bin/cli.js"
   },
   "scripts": {
     "build": "tsc",
     "render-examples": "tsc && npm run assets-helper && npm run ts-api-client && npm run csharp-url-helpers",
-    "csharp-url-helpers": "hbs-magic --hbs=examples/advanced_csharp-url-helpers/input --output=examples/advanced_csharp-url-helpers/Result.gen.cs",
-    "ts-api-client": "hbs-magic --input=https://petstore3.swagger.io/api/v3/openapi.json --hbs=examples/from-api_ts-api-client/input --output=examples/from-api_ts-api-client/Result.gen.ts",
-    "assets-helper": "hbs-magic --hbs=examples/simple_assets-helper/input --output=examples/simple_assets-helper/Result.gen.ts"
+    "csharp-url-helpers": "tsynth gen --sources=examples/advanced_csharp-url-helpers/input --output=examples/advanced_csharp-url-helpers/Result.gen.cs",
+    "ts-api-client": "tsynth gen --input=https://petstore3.swagger.io/api/v3/openapi.json --sources=examples/from-api_ts-api-client/input --output=examples/from-api_ts-api-client/Result.gen.ts",
+    "assets-helper": "tsynth gen --sources=examples/simple_assets-helper/input --output=examples/simple_assets-helper/Result.gen.ts"
   },
   "devDependencies": {
     "@types/node": "17.0.24",
