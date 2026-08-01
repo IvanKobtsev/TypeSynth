@@ -1,6 +1,6 @@
 {
   "name": "hbs-magic",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A CLI tool designed to simplify source-generation with Handlebars templates as much as humanly possible.",
   "keywords": [
     "source-code-generation",
@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "concurrently": "^9.2.1",
-    "esbuild": "^0.27.4",
+    "esbuild": "^0.28.1",
     "esbuild-register": "^3.6.0",
     "handlebars": "^4.7.8",
     "json-stable-stringify": "^1.3.0",
