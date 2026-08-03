@@ -152,6 +152,12 @@ test("generates registry automs with inferred and manual registrations", async (
     assert.match(generated, /Confirmation = "Confirmation"/);
     assert.match(generated, /Schedule = "Schedule"/);
     assert.match(generated, /\[ModalType\.Confirmation\]: ConfirmationModal/);
+    const unchanged = await run(["automs"], folder);
+    assert.equal(unchanged.code, 0, unchanged.stderr);
+    assert.doesNotMatch(
+      unchanged.stdout,
+      /Registry autom generated successfully/,
+    );
   } finally {
     await rm(folder, { recursive: true, force: true });
   }
@@ -182,6 +188,7 @@ test("reports an unknown registry before declaration-shape errors", async () => 
       result.stderr,
       /@register references unknown registry "Missing"/,
     );
+    assert.match(result.stderr, /wrong\.ts:1/);
     assert.doesNotMatch(
       result.stderr,
       /requires a top-level named runtime export/,

@@ -60,9 +60,35 @@ test("reporter aggregates concurrent TTY tasks and clears its timer", () => {
   reporter.start("one", "first task");
   reporter.start("two", "second task");
   callback();
+  callback();
   assert.match(stderr.output, /Processing 2 TypeSynth tasks…/);
+  assert.match(stderr.output, /\|/);
+  assert.match(stderr.output, /\//);
+  assert.match(stderr.output, /-/);
   reporter.stop("one");
   reporter.stop("two");
   assert.equal(cleared, true);
   assert.match(stderr.output, /\u001b\[2K/);
+});
+
+test("reporter animates on stdout when stderr is not a TTY", () => {
+  const stdout = stream(true);
+  const stderr = stream(false);
+  let callback;
+  const reporter = new CliReporter({
+    stdout,
+    stderr,
+    env: { NO_COLOR: "1" },
+    setInterval(fn) {
+      callback = fn;
+      return 1;
+    },
+    clearInterval() {},
+  });
+  reporter.start("one", "fallback task");
+  callback();
+  reporter.stop("one");
+  assert.match(stdout.output, /\| Processing fallback task/);
+  assert.match(stdout.output, /\/ Processing fallback task/);
+  assert.equal(stderr.output, "");
 });

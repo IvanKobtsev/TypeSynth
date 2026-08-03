@@ -48,18 +48,22 @@ export type RegistryRunStats = {
   projectGeneration: number;
   scannedFiles: number;
   renderedOutputs: number;
+  changedOutputs: number;
 };
 
 const normalize = (value: string) => value.replace(/\\/g, "/");
 const withoutTsExtension = (value: string) =>
   value.replace(/\.d\.ts$/i, "").replace(/\.(tsx?|jsx?)$/i, "");
 
-function jsDocTags(node: Node): Array<{ name: string; comment: string }> {
+function jsDocTags(
+  node: Node,
+): Array<{ name: string; comment: string; line: number }> {
   const docs = (node as any).getJsDocs?.() ?? [];
   return docs.flatMap((doc: any) =>
     doc.getTags().map((tag: any) => ({
       name: tag.getTagName(),
       comment: (tag.getCommentText?.() ?? "").trim(),
+      line: tag.getStartLineNumber(),
     })),
   );
 }
@@ -359,13 +363,13 @@ export class RegistryAutomSession {
         const registry = this.registries.get(registryName);
         if (!registry) {
           throw new Error(
-            `@register references unknown registry "${registryName}".`,
+            `@register references unknown registry "${registryName}" at ${sourceFile.getFilePath()}:${tag.line}.`,
           );
         }
         const annotated = this.annotatedValues(node, runtimeValues);
         if (annotated.length === 0) {
           throw new Error(
-            `@register ${registryName} at ${sourceFile.getFilePath()}:${node.getStartLineNumber()} requires a top-level named runtime export.`,
+            `@register ${registryName} at ${sourceFile.getFilePath()}:${tag.line} requires a top-level named runtime export.`,
           );
         }
         for (const value of annotated) add(registryName, value);
@@ -530,6 +534,7 @@ export class RegistryAutomSession {
 
   private async render(registryNames?: Set<string>) {
     let rendered = 0;
+    let changed = 0;
     for (const [outputPath, registries] of this.outputGroups()) {
       if (
         registryNames &&
@@ -547,14 +552,16 @@ export class RegistryAutomSession {
         fs.readFileSync(outputPath, "utf8") !== formatted
       ) {
         fs.writeFileSync(outputPath, formatted, "utf8");
+        changed++;
       }
       rendered++;
     }
-    return rendered;
+    return { rendered, changed };
   }
 
   private cleanStaleOutputs() {
-    if (!fs.existsSync(this.outputRoot)) return;
+    if (!fs.existsSync(this.outputRoot)) return 0;
+    let removed = 0;
     const expected = new Set(
       [...this.registries.values()].map((registry) =>
         path.resolve(registry.outputPath),
@@ -567,8 +574,10 @@ export class RegistryAutomSession {
         fs.readFileSync(file, "utf8").startsWith(generatedMarker)
       ) {
         fs.unlinkSync(file);
+        removed++;
       }
     }
+    return removed;
   }
 
   async rebuild() {
@@ -593,14 +602,15 @@ export class RegistryAutomSession {
       for (const warning of contribution.warnings) reporter.warn(warning);
     }
     this.contributions = nextContributions;
-    const renderedOutputs = await this.render();
-    this.cleanStaleOutputs();
+    const renderResult = await this.render();
+    const removedOutputs = this.cleanStaleOutputs();
     this.needsRebuild = false;
     this.lastRunStats = {
       mode: "full",
       projectGeneration: this.generation,
       scannedFiles: sourceFiles.length,
-      renderedOutputs,
+      renderedOutputs: renderResult.rendered,
+      changedOutputs: renderResult.changed + removedOutputs,
     };
     return this.lastRunStats;
   }
@@ -669,12 +679,13 @@ export class RegistryAutomSession {
       }
       this.contributions.set(file, contribution);
     }
-    const renderedOutputs = await this.render(affectedRegistries);
+    const renderResult = await this.render(affectedRegistries);
     this.lastRunStats = {
       mode: "incremental",
       projectGeneration: this.generation,
       scannedFiles: impacted.size,
-      renderedOutputs,
+      renderedOutputs: renderResult.rendered,
+      changedOutputs: renderResult.changed,
     };
     return this.lastRunStats;
   }

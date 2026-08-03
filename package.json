@@ -1,6 +1,6 @@
 {
   "name": "typesynth",
-  "version": "0.0.2",
+  "version": "0.0.21",
   "description": "A TypeScript source-generation framework for eliminating boilerplate and automating repetitive tasks",
   "keywords": [
     "source-code-generation",

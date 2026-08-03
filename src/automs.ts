@@ -31,7 +31,10 @@ export async function runAutomsOnce(
         "autom:registry:once",
         "registry autom",
         () => runRegistryAutom(configDirectory, automs.registry ?? {}),
-        "Registry autom generated successfully.",
+        (stats) =>
+          stats.changedOutputs > 0
+            ? "Registry autom generated successfully."
+            : undefined,
       );
     }
   }
@@ -60,7 +63,10 @@ export async function watchAutoms(
         "autom:registry:initial",
         "registry autom",
         () => session.rebuild(),
-        "Registry autom generated successfully.",
+        (stats) =>
+          stats.changedOutputs > 0
+            ? "Registry autom generated successfully."
+            : undefined,
       );
     } catch (error) {
       reporter.error("Initial registry autom generation failed:", error);
@@ -73,7 +79,10 @@ export async function watchAutoms(
             "autom:registry:update",
             "registry autom update",
             () => session.applyChanges(changes ?? []),
-            "Registry autom generated successfully.",
+            (stats) =>
+              stats.changedOutputs > 0
+                ? "Registry autom generated successfully."
+                : undefined,
           );
         },
         watch: {

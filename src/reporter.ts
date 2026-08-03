@@ -11,7 +11,7 @@ type ReporterOptions = {
   clearInterval?: typeof globalThis.clearInterval;
 };
 
-const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+const frames = ["|", "/", "-", "\\"];
 
 export class CliReporter {
   private readonly stdout: Writable;
@@ -19,6 +19,7 @@ export class CliReporter {
   private readonly env: NodeJS.ProcessEnv;
   private readonly makeInterval: typeof globalThis.setInterval;
   private readonly removeInterval: typeof globalThis.clearInterval;
+  private readonly spinnerStream: Writable | undefined;
   private readonly tasks = new Map<string, string>();
   private timer: ReturnType<typeof globalThis.setInterval> | undefined;
   private frame = 0;
@@ -30,6 +31,13 @@ export class CliReporter {
     this.env = options.env ?? process.env;
     this.makeInterval = options.setInterval ?? globalThis.setInterval;
     this.removeInterval = options.clearInterval ?? globalThis.clearInterval;
+    this.spinnerStream = this.env.CI
+      ? undefined
+      : this.stderr.isTTY
+        ? this.stderr
+        : this.stdout.isTTY
+          ? this.stdout
+          : undefined;
   }
 
   private useColor(stream: Writable) {
@@ -50,16 +58,16 @@ export class CliReporter {
   }
 
   private clearFrame() {
-    if (this.rendered && this.stderr.isTTY) {
-      this.stderr.write("\r\u001b[2K");
+    if (this.rendered && this.spinnerStream) {
+      this.spinnerStream.write("\r\u001b[2K");
       this.rendered = false;
     }
   }
 
   private render() {
-    if (!this.stderr.isTTY || this.tasks.size === 0) return;
+    if (!this.spinnerStream || this.tasks.size === 0) return;
     this.clearFrame();
-    this.stderr.write(
+    this.spinnerStream.write(
       `${frames[this.frame++ % frames.length]} ${this.taskText()}`,
     );
     this.rendered = true;
@@ -68,7 +76,7 @@ export class CliReporter {
   start(key: string, label: string) {
     const wasEmpty = this.tasks.size === 0;
     this.tasks.set(key, label);
-    if (!this.stderr.isTTY) {
+    if (!this.spinnerStream) {
       this.stderr.write(`${this.taskText()}\n`);
       return;
     }
@@ -120,13 +128,17 @@ export class CliReporter {
     key: string,
     label: string,
     action: () => Promise<T>,
-    successMessage?: string,
+    successMessage?: string | ((result: T) => string | undefined),
   ) {
     this.start(key, label);
     try {
       const result = await action();
       this.stop(key);
-      if (successMessage) this.success(successMessage);
+      const message =
+        typeof successMessage === "function"
+          ? successMessage(result)
+          : successMessage;
+      if (message) this.success(message);
       return result;
     } catch (error) {
       this.stop(key);
