@@ -17,6 +17,8 @@ export type {
   GeneratorContext,
   GeneratorScript,
   GeneratorTrigger,
+  RegistryAutomOptions,
+  TypeSynthAutoms,
   TypeSynthConfig,
   TypeSynthJob,
   TypeSynthWatchOptions,

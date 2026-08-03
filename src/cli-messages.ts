@@ -3,7 +3,7 @@ export const inputDataNotFound = `No input data found.
 Please provide data using one of the following options:
 
 1. Use the "--input" flag with a path or URL to a JSON file
-   Example: tsynth gen --input=./data.json
+   Example: tsynth hbs --input=./data.json
 
 2. Add a preparation script:
    - File name: preparation-script.ts or preparation-script.js
@@ -30,7 +30,7 @@ Tip: Remove unused inputs to make your setup clearer.`;
 
 export const positionalArgumentsNotAllowed = `No positional arguments allowed. Use '--key=value' format.`;
 
-export const hbsMagicCliUsage = `Usage: tsynth gen [--input=<json>] --sources=<folder> --output=<file> [--disable-formatting]
+export const hbsMagicCliUsage = `Usage: tsynth hbs [--input=<json>] --sources=<folder> --output=<file> [--disable-formatting]
     --input: Optional JSON input file path. If not provided, the script will look for "input-data.json" in the specified hbs folder.
     --sources: Required folder containing the Handlebars template, optional helpers, partials, and preparation script.
     --output: Required output file path where the generated source code will be written.
@@ -39,7 +39,7 @@ export const hbsMagicCliUsage = `Usage: tsynth gen [--input=<json>] --sources=<f
 export const hbsMagicHelp = `TypeSynth — source-code generation with Handlebars templates
 
 Usage:
-  tsynth gen --sources=<folder> --output=<file> [--input=<json>] [--disable-formatting]
+  tsynth hbs --sources=<folder> --output=<file> [--input=<json>] [--disable-formatting]
 
 Required flags:
   --sources=<folder>    Folder containing your Handlebars template and optional
@@ -77,12 +77,12 @@ Auto-formatting:
 
 Examples:
   # Simple: static JSON + template
-  tsynth gen --sources=gen/input --output=src/result.gen.ts
+  tsynth hbs --sources=gen/input --output=src/result.gen.ts
 
   # From a remote API
-  tsynth gen --input=https://api.example.com/openapi.json --sources=gen/input --output=src/client.gen.ts
+  tsynth hbs --input=https://api.example.com/openapi.json --sources=gen/input --output=src/client.gen.ts
 
   # With formatting disabled
-  tsynth gen --sources=gen/input --output=src/result.gen.ts --disable-formatting
+  tsynth hbs --sources=gen/input --output=src/result.gen.ts --disable-formatting
 
 Documentation: https://github.com/IvanKobtsev/TypeSynth#readme`;

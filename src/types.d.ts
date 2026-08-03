@@ -12,6 +12,7 @@ export type FileChangeType =
 export type FileChange = {
   path: string;
   type: FileChangeType;
+  source: "file" | "url";
 };
 
 export type GeneratorTrigger = "manual" | "initial" | "watch";
@@ -35,8 +36,10 @@ export type WatcherScript<TChanges = FileChange[]> = (
 ) => TChanges | false | Promise<TChanges | false>;
 
 export type TypeSynthWatchOptions<TChanges = FileChange[]> = {
-  files: string | string[];
-  debounce?: number;
+  target: string | string[];
+  debounceMs?: number;
+  urlPollIntervalMs?: number;
+  watchGenerationScript?: boolean;
   script?: string | WatcherScript<TChanges>;
 };
 
@@ -45,6 +48,15 @@ export type TypeSynthJob<TChanges = FileChange[]> = {
   watch?: TypeSynthWatchOptions<TChanges>;
 };
 
+export type RegistryAutomOptions = {
+  useManualRegistration?: boolean;
+};
+
+export type TypeSynthAutoms = {
+  registry?: RegistryAutomOptions;
+};
+
 export type TypeSynthConfig = {
-  jobs: Record<string, TypeSynthJob<any>>;
+  jobs?: Record<string, TypeSynthJob<any>>;
+  automs?: TypeSynthAutoms;
 };

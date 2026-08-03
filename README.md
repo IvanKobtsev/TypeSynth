@@ -8,26 +8,11 @@ TypeSynth generates source files from your existing TypeScript project structure
 npm install --save-dev typesynth
 ```
 
-## Handlebars generation
-
-The existing Handlebars workflow is available directly under `gen`:
+or
 
 ```bash
-tsynth gen --sources=gen/input --output=src/result.gen.ts
-tsynth gen --sources=gen/input --output=src/client.gen.ts --input=https://example.com/schema.json
+yarn add -D typesynth
 ```
-
-`--hbs` is an alias for `--sources`. Add `--disable-formatting` to skip Prettier or CSharpier.
-
-The sources folder may contain:
-
-- `template.hbs` (required)
-- `input-data.json`
-- `preparation-script.ts`, default-exporting a function that returns template data
-- `hbs-helpers.ts`, default-exporting an object of Handlebars helpers
-- `template_partial_*.hbs`
-
-Input priority is `--input`, the preparation script result, then `input-data.json`.
 
 ## Configured generators
 
@@ -41,8 +26,8 @@ export default defineConfig({
     assets: {
       generate: "./scripts/generate-assets.ts",
       watch: {
-        files: ["assets/**/*", "scripts/generate-assets.ts"],
-        debounce: 150,
+        target: "assets/**/*",
+        debounceMs: 250,
         script: "./scripts/watch-assets.ts",
       },
     },
@@ -52,9 +37,12 @@ export default defineConfig({
         output: "./src/api.gen.ts",
       }),
       watch: {
-        files: "generation/api/**/*",
+        target: "https://example.com/schema.json",
       },
     },
+  },
+  automs: {
+    registry: {}
   },
 });
 ```
@@ -69,6 +57,66 @@ tsynth watch assets
 ```
 
 `watch` runs each selected generator once at startup. After that it debounces matching add, change, and delete events. Runs never overlap for the same job; changes received during generation are combined into one subsequent run.
+
+When `generate` is a script path, TypeSynth watches that script automatically. Set `watchGenerationScript: false` in the watch options to disable the automatic target.
+
+Targets may mix local globs and HTTP(S) URLs. URLs are polled every five seconds by default; set `urlPollIntervalMs` to override that interval. The first successful response establishes a checksum baseline, and subsequent polls trigger generation only when the response body changes.
+
+## Automs
+
+Automs are TypeSynth-provided generation workflows. Run them once or keep them and your jobs synchronized:
+
+```bash
+tsynth automs
+tsynth automs registry
+tsynth start jobs
+tsynth start automs
+tsynth start all
+```
+
+### Registry autom
+
+Mark a type as a registry and export values that consume it:
+
+```ts
+/** @registry Modal */
+export interface GlobalModalProps<TData = {}> {
+  data: TData;
+}
+
+/** @register Modal */ 
+//  ^^^^^^^^^^^^^^^    Can be omitted for components and hooks with a single argument unless "useManualRegistration" is set to "true"
+export function ConfirmationModal(
+  props: GlobalModalProps<{ message: string }>,
+) {
+  return props.data.message;
+}
+
+/** @register Modal */
+export function ScheduleModal(
+  props: GlobalModalProps<{ title: string }>,
+) {
+    return props.data.title;
+}
+```
+
+TypeSynth automatically infers exported single-argument functions that use the registry type. Set `useManualRegistration: true` to require annotations for every value.
+
+_The example generates `tsynth-gen/registry/modalRegistry.gen.ts` beneath the tsconfig `baseUrl`, or beside `typesynth.config.ts` when no `baseUrl` is configured:_
+
+```ts
+export enum ModalType {
+  Confirmation = "Confirmation",
+  Schedule = "Schedule",
+}
+
+export const ModalMap = {
+  [ModalType.Confirmation]: ConfirmationModal,
+  [ModalType.Schedule]: ScheduleModal,
+} as const;
+```
+
+Use `@registry Modal modals/custom.gen.ts` to choose a nested path beneath `tsynth-gen/registry`. Absolute paths, paths escaping that folder, and non-`.ts` outputs are rejected. Imports prefer tsconfig path aliases and otherwise use relative paths.
 
 ## Generator scripts
 
@@ -105,11 +153,26 @@ const watchAssets: WatcherScript<string[]> = (events) => {
 export default watchAssets;
 ```
 
-Paths in file events are project-relative and use `/` separators. Event types are `add`, `change`, `unlink`, `addDir`, and `unlinkDir`.
+Paths in local file events are project-relative and use `/` separators. Event types are `add`, `change`, `unlink`, `addDir`, and `unlinkDir`. Every event has `source: "file" | "url"`; URL changes use the URL as `path` and `type: "change"`.
 
-## Built-in generators
+## Handlebars generation
 
-TypeSynth is intended to include generators for common patterns. Registry generation is planned but is not implemented in this release.
+If you want a simple template-driven generation, TypeSynth got you covered with its Handlebars CLI integration:
+
+```bash
+tsynth hbs --sources=gen/input --output=src/result.gen.ts
+tsynth hbs --sources=gen/client --input=https://example.com/schema.json --output=src/client.gen.ts
+```
+
+The sources folder may contain:
+
+- `template.hbs` (required)
+- `input-data.json`
+- `preparation-script.ts`, default-exporting a function that can prepare the template data
+- `hbs-helpers.ts`, default-exporting an object of Handlebars helpers
+- `template_partial_*.hbs`
+
+Input priority is `--input`, the preparation script result, then `input-data.json`.
 
 ## License
 

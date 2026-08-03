@@ -31,16 +31,15 @@
     "build": "tsc",
     "test": "npm run build && node --test test/*.test.mjs",
     "render-examples": "tsc && npm run assets-helper && npm run ts-api-client && npm run csharp-url-helpers",
-    "csharp-url-helpers": "node dist/bin/cli.js gen --sources=examples/advanced_csharp-url-helpers/input --output=examples/advanced_csharp-url-helpers/Result.gen.cs",
-    "ts-api-client": "node dist/bin/cli.js gen --input=https://petstore3.swagger.io/api/v3/openapi.json --sources=examples/from-api_ts-api-client/input --output=examples/from-api_ts-api-client/Result.gen.ts",
-    "assets-helper": "node dist/bin/cli.js gen --sources=examples/simple_assets-helper/input --output=examples/simple_assets-helper/Result.gen.ts"
+    "csharp-url-helpers": "tsynth hbs --sources=examples/advanced_csharp-url-helpers/input --output=examples/advanced_csharp-url-helpers/Result.gen.cs",
+    "ts-api-client": "tsynth hbs --input=https://petstore3.swagger.io/api/v3/openapi.json --sources=examples/from-api_ts-api-client/input --output=examples/from-api_ts-api-client/Result.gen.ts",
+    "assets-helper": "tsynth hbs --sources=examples/simple_assets-helper/input --output=examples/simple_assets-helper/Result.gen.ts"
   },
   "devDependencies": {
     "@types/node": "22",
     "@types/node-fetch": "^2.6.13",
     "@types/picomatch": "^4.0.3",
     "react-router-url-params": "^0.9.2",
-    "ts-morph": "^27.0.2",
     "typescript": "^5.9.3"
   },
   "dependencies": {
@@ -53,6 +52,7 @@
     "node-fetch": "^3.3.2",
     "picomatch": "4.0.3",
     "prettier": "^3.8.1",
+    "ts-morph": "^27.0.2",
     "ts-node": "^10.9.2"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
