@@ -42,7 +42,9 @@ export default defineConfig({
     },
   },
   automs: {
-    registry: {}
+    registry: {
+      debounceMs: 100,
+    },
   },
 });
 ```
@@ -84,7 +86,7 @@ export interface GlobalModalProps<TData = {}> {
   data: TData;
 }
 
-/** @register Modal */ 
+/** @register Modal */
 //  ^^^^^^^^^^^^^^^    Can be omitted for components and hooks with a single argument unless "useManualRegistration" is set to "true"
 export function ConfirmationModal(
   props: GlobalModalProps<{ message: string }>,
@@ -93,14 +95,14 @@ export function ConfirmationModal(
 }
 
 /** @register Modal */
-export function ScheduleModal(
-  props: GlobalModalProps<{ title: string }>,
-) {
-    return props.data.title;
+export function ScheduleModal(props: GlobalModalProps<{ title: string }>) {
+  return props.data.title;
 }
 ```
 
 TypeSynth automatically infers exported single-argument functions that use the registry type. Set `useManualRegistration: true` to require annotations for every value.
+
+During `start automs` and `start all`, ordinary edits reuse a persistent TypeScript project and rescan only the changed file and its dependents. Added or deleted files, tsconfig edits, and registry-declaration changes safely trigger a full reindex. Registry updates debounce for 100 ms by default; override this with `debounceMs`.
 
 _The example generates `tsynth-gen/registry/modalRegistry.gen.ts` beneath the tsconfig `baseUrl`, or beside `typesynth.config.ts` when no `baseUrl` is configured:_
 
@@ -173,6 +175,10 @@ The sources folder may contain:
 - `template_partial_*.hbs`
 
 Input priority is `--input`, the preparation script result, then `input-data.json`.
+
+## CLI output
+
+Interactive terminals show a loading spinner while TypeSynth generates. Redirected and CI output uses stable `Processing …` lines instead. Successful generation is green, warnings are yellow, and errors are red. TypeSynth respects `NO_COLOR` and `FORCE_COLOR`.
 
 ## License
 

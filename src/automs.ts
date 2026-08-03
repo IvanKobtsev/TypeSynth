@@ -1,6 +1,7 @@
 import path from "node:path";
 import { TypeSynthAutoms } from "./types.js";
-import { getRegistryProjectPaths, runRegistryAutom } from "./registry-autom.js";
+import { RegistryAutomSession, runRegistryAutom } from "./registry-autom.js";
+import { reporter } from "./reporter.js";
 import { watchJob, WatchHandle } from "./watch.js";
 
 export type AutomName = keyof TypeSynthAutoms;
@@ -26,7 +27,12 @@ export async function runAutomsOnce(
 ) {
   for (const name of selected) {
     if (name === "registry") {
-      await runRegistryAutom(configDirectory, automs.registry ?? {});
+      await reporter.task(
+        "autom:registry:once",
+        "registry autom",
+        () => runRegistryAutom(configDirectory, automs.registry ?? {}),
+        "Registry autom generated successfully.",
+      );
     }
   }
 }
@@ -40,45 +46,70 @@ export async function watchAutoms(
   for (const name of selected) {
     if (name !== "registry") continue;
     const options = automs.registry ?? {};
-    const { outputRoot, outDir } = getRegistryProjectPaths(configDirectory);
-    try {
-      await runRegistryAutom(configDirectory, options);
-    } catch (error) {
-      console.error(`Initial registry autom generation failed:`, error);
+    if (
+      options.debounceMs !== undefined &&
+      (!Number.isFinite(options.debounceMs) || options.debounceMs < 0)
+    ) {
+      throw new Error(
+        "Registry autom debounceMs must be a non-negative number.",
+      );
     }
-    handles.push(
-      await watchJob(
-        "autom:registry",
-        {
-          generate: async () => runRegistryAutom(configDirectory, options),
-          watch: {
-            target: ["**/*.ts", "**/*.tsx", "tsconfig.json"],
-            script: (events) => {
-              const filtered = events.filter((event) => {
-                if (event.source !== "file") return true;
-                const absolute = path.resolve(configDirectory, event.path);
-                if (absolute === path.join(configDirectory, "tsconfig.json"))
-                  return true;
-                if (
-                  absolute === outputRoot ||
-                  absolute.startsWith(`${outputRoot}${path.sep}`)
-                )
-                  return false;
-                if (
-                  outDir &&
-                  (absolute === outDir ||
-                    absolute.startsWith(`${outDir}${path.sep}`))
-                )
-                  return false;
+    const session = new RegistryAutomSession(configDirectory, options);
+    try {
+      await reporter.task(
+        "autom:registry:initial",
+        "registry autom",
+        () => session.rebuild(),
+        "Registry autom generated successfully.",
+      );
+    } catch (error) {
+      reporter.error("Initial registry autom generation failed:", error);
+    }
+    const watcher = await watchJob(
+      "autom:registry",
+      {
+        generate: async ({ changes }) => {
+          await reporter.task(
+            "autom:registry:update",
+            "registry autom update",
+            () => session.applyChanges(changes ?? []),
+            "Registry autom generated successfully.",
+          );
+        },
+        watch: {
+          target: ["**/*.ts", "**/*.tsx", "tsconfig.json"],
+          debounceMs: options.debounceMs ?? 100,
+          script: (events) => {
+            const filtered = events.filter((event) => {
+              if (event.source !== "file") return true;
+              const absolute = path.resolve(configDirectory, event.path);
+              if (absolute === path.join(configDirectory, "tsconfig.json"))
                 return true;
-              });
-              return filtered.length > 0 ? filtered : false;
-            },
+              if (
+                absolute === session.outputRoot ||
+                absolute.startsWith(`${session.outputRoot}${path.sep}`)
+              )
+                return false;
+              if (
+                session.outDir &&
+                (absolute === session.outDir ||
+                  absolute.startsWith(`${session.outDir}${path.sep}`))
+              )
+                return false;
+              return true;
+            });
+            return filtered.length > 0 ? filtered : false;
           },
         },
-        configDirectory,
-      ),
+      },
+      configDirectory,
     );
+    handles.push({
+      async close() {
+        await watcher.close();
+        session.dispose();
+      },
+    });
   }
   return handles;
 }

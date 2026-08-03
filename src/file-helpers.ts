@@ -63,7 +63,9 @@ export async function getDefaultExport(source: string) {
     }
   } else {
     return (
-      await import(`${pathToFileURL(path.resolve(source)).href}?t=${Date.now()}`)
+      await import(
+        `${pathToFileURL(path.resolve(source)).href}?t=${Date.now()}`
+      )
     ).default;
   }
 }

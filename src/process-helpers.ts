@@ -6,6 +6,7 @@ import {
   positionalArgumentsNotAllowed,
 } from "./cli-messages.js";
 import { getJson } from "./file-helpers.js";
+import { reporter } from "./reporter.js";
 
 type ParsedArgs = {
   [key: string]: string | boolean | string[];
@@ -15,7 +16,7 @@ export function extractArguments(process: NodeJS.Process, required: string[]) {
   const raw = process.argv.slice(2);
 
   if (raw.length === 1 && raw[0] === "--help") {
-    console.log(hbsMagicHelp);
+    reporter.info(hbsMagicHelp);
     process.exit(1);
   }
 
@@ -33,8 +34,8 @@ export function extractArguments(process: NodeJS.Process, required: string[]) {
 
   for (const req of required) {
     if (!(req in args)) {
-      console.error(`Missing required argument: --${req}`);
-      console.error(hbsMagicCliUsage);
+      reporter.error(`Missing required argument: --${req}`);
+      reporter.error(hbsMagicCliUsage);
       process.exit(1);
     }
   }
@@ -68,7 +69,7 @@ export async function getInputObject(
     (preparationScriptResult ? 1 : 0) +
     (inputPath ? 1 : 0);
 
-  if (sourcesCount > 1) console.warn(multipleSourcesDetected);
+  if (sourcesCount > 1) reporter.warn(multipleSourcesDetected);
 
   if (externalJson) return await getJson(externalJson);
 

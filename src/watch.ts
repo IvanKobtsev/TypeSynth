@@ -4,6 +4,7 @@ import { watch, FSWatcher } from "chokidar";
 import fetch from "node-fetch";
 import picomatch from "picomatch";
 import { runGenerator, runWatcherScript } from "./generator.js";
+import { reporter } from "./reporter.js";
 import { FileChange, FileChangeType, TypeSynthJob } from "./types.js";
 
 const eventTypes = new Set<FileChangeType>([
@@ -26,18 +27,24 @@ export async function watchJob(
   job: TypeSynthJob<any>,
   configDirectory: string,
 ): Promise<WatchHandle> {
-  if (!job.watch) throw new Error(`Job \"${jobName}\" has no watch configuration.`);
+  if (!job.watch)
+    throw new Error(`Job \"${jobName}\" has no watch configuration.`);
   const targets = Array.isArray(job.watch.target)
     ? job.watch.target
     : [job.watch.target];
   if (targets.length === 0 || targets.some((target) => !target)) {
-    throw new Error(`Job \"${jobName}\" must define at least one watch target.`);
+    throw new Error(
+      `Job \"${jobName}\" must define at least one watch target.`,
+    );
   }
 
   const urlTargets = targets.filter(isUrl);
   const localPatterns = targets.filter((target) => !isUrl(target));
   let generationScriptPath: string | undefined;
-  if (typeof job.generate === "string" && job.watch.watchGenerationScript !== false) {
+  if (
+    typeof job.generate === "string" &&
+    job.watch.watchGenerationScript !== false
+  ) {
     generationScriptPath = path.resolve(configDirectory, job.generate);
     localPatterns.push(
       normalizePath(path.relative(configDirectory, generationScriptPath)),
@@ -48,11 +55,15 @@ export async function watchJob(
     : () => false;
   const debounce = job.watch.debounceMs ?? 500;
   if (!Number.isFinite(debounce) || debounce < 0) {
-    throw new Error(`Job \"${jobName}\" debounceMs must be a non-negative number.`);
+    throw new Error(
+      `Job \"${jobName}\" debounceMs must be a non-negative number.`,
+    );
   }
   const pollInterval = job.watch.urlPollIntervalMs ?? 5000;
   if (!Number.isFinite(pollInterval) || pollInterval <= 0) {
-    throw new Error(`Job \"${jobName}\" urlPollIntervalMs must be a positive number.`);
+    throw new Error(
+      `Job \"${jobName}\" urlPollIntervalMs must be a positive number.`,
+    );
   }
 
   let queued = new Map<string, FileChange>();
@@ -83,16 +94,26 @@ export async function watchJob(
             events,
           );
           if (changes !== false) {
-            await runGenerator(jobName, job, configDirectory, {
-              trigger: "watch",
-              changes,
-              projectRoot: configDirectory,
-              jobName,
-            });
-            console.log(`Generated \"${jobName}\" from ${events.length} change(s).`);
+            const generate = () =>
+              runGenerator(jobName, job, configDirectory, {
+                trigger: "watch",
+                changes,
+                projectRoot: configDirectory,
+                jobName,
+              });
+            if (jobName.startsWith("autom:")) {
+              await generate();
+            } else {
+              await reporter.task(
+                `watch:${jobName}`,
+                `job \"${jobName}\"`,
+                generate,
+                `Generated \"${jobName}\" from ${events.length} change(s).`,
+              );
+            }
           }
         } catch (error) {
-          console.error(`TypeSynth watch job \"${jobName}\" failed:`, error);
+          reporter.error(`TypeSynth watch job \"${jobName}\" failed:`, error);
         }
       } while (pending || queued.size > 0);
     } finally {
@@ -111,7 +132,9 @@ export async function watchJob(
     const watchPaths = [configDirectory];
     if (
       generationScriptPath &&
-      normalizePath(path.relative(configDirectory, generationScriptPath)).startsWith("../")
+      normalizePath(
+        path.relative(configDirectory, generationScriptPath),
+      ).startsWith("../")
     ) {
       watchPaths.push(generationScriptPath);
     }
@@ -157,7 +180,8 @@ export async function watchJob(
       pollControllers.add(controller);
       try {
         const response = await fetch(url, { signal: controller.signal });
-        if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+        if (!response.ok)
+          throw new Error(`HTTP ${response.status} ${response.statusText}`);
         const body = Buffer.from(await response.arrayBuffer());
         const nextChecksum = createHash("sha256").update(body).digest("hex");
         if (checksum !== undefined && checksum !== nextChecksum) {
@@ -166,7 +190,10 @@ export async function watchJob(
         checksum = nextChecksum;
       } catch (error) {
         if (!closed) {
-          console.error(`TypeSynth URL poll for job \"${jobName}\" failed (${url}):`, error);
+          reporter.error(
+            `TypeSynth URL poll for job \"${jobName}\" failed (${url}):`,
+            error,
+          );
         }
       } finally {
         pollControllers.delete(controller);

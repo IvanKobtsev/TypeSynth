@@ -6,6 +6,7 @@ import { hbsGenerator } from "../src/hbs-generator.js";
 import { selectAutoms, runAutomsOnce, watchAutoms } from "../src/automs.js";
 import { watchJob, WatchHandle } from "../src/watch.js";
 import { TypeSynthJob } from "../src/types.js";
+import { reporter } from "../src/reporter.js";
 
 const help = `TypeSynth — TypeScript source generation framework
 
@@ -87,18 +88,23 @@ async function runDirectHbs(parsed: ParsedCli, projectRoot: string) {
     );
   if (parsed.flags.sources && parsed.flags.hbs)
     throw new Error("Use either --sources or --hbs, not both.");
-  await hbsGenerator({
-    sources,
-    output,
-    input: stringFlag(parsed.flags, "input"),
-    formatting: !parsed.flags["disable-formatting"],
-  })({
-    trigger: "manual",
-    changes: undefined,
-    projectRoot,
-    jobName: "handlebars",
-  });
-  console.log(`Successfully generated "${path.resolve(projectRoot, output)}".`);
+  await reporter.task(
+    "hbs",
+    "Handlebars generation",
+    async () =>
+      await hbsGenerator({
+        sources,
+        output,
+        input: stringFlag(parsed.flags, "input"),
+        formatting: !parsed.flags["disable-formatting"],
+      })({
+        trigger: "manual",
+        changes: undefined,
+        projectRoot,
+        jobName: "handlebars",
+      }),
+    `Successfully generated "${path.resolve(projectRoot, output)}".`,
+  );
 }
 
 function selectJobs(
@@ -120,13 +126,18 @@ async function runJobsOnce(
   configDirectory: string,
 ) {
   for (const jobName of selected) {
-    await runGenerator(jobName, jobs[jobName], configDirectory, {
-      trigger: "manual",
-      changes: undefined,
-      projectRoot: configDirectory,
-      jobName,
-    });
-    console.log(`Successfully generated "${jobName}".`);
+    await reporter.task(
+      `gen:${jobName}`,
+      `job "${jobName}"`,
+      () =>
+        runGenerator(jobName, jobs[jobName], configDirectory, {
+          trigger: "manual",
+          changes: undefined,
+          projectRoot: configDirectory,
+          jobName,
+        }),
+      `Successfully generated "${jobName}".`,
+    );
   }
 }
 
@@ -143,20 +154,25 @@ async function watchJobs(
       if (!job.watch)
         throw new Error(`Job "${jobName}" has no watch configuration.`);
       try {
-        await runGenerator(jobName, job, configDirectory, {
-          trigger: "initial",
-          changes: undefined,
-          projectRoot: configDirectory,
-          jobName,
-        });
-        console.log(`Initially generated "${jobName}".`);
+        await reporter.task(
+          `initial:${jobName}`,
+          `job "${jobName}"`,
+          () =>
+            runGenerator(jobName, job, configDirectory, {
+              trigger: "initial",
+              changes: undefined,
+              projectRoot: configDirectory,
+              jobName,
+            }),
+          `Initially generated "${jobName}".`,
+        );
       } catch (error) {
-        console.error(`Initial generation for "${jobName}" failed:`, error);
+        reporter.error(`Initial generation for "${jobName}" failed:`, error);
       }
       handles.push(await watchJob(jobName, job, configDirectory));
     } catch (error) {
       if (!continueOnError) throw error;
-      console.error(`Failed to start job "${jobName}":`, error);
+      reporter.error(`Failed to start job "${jobName}":`, error);
     }
   }
   return handles;
@@ -165,8 +181,9 @@ async function watchJobs(
 function installShutdown(handles: WatchHandle[], label: string) {
   if (handles.length === 0)
     throw new Error(`No ${label} watchers were started.`);
-  console.log(`Watching ${label}.`);
+  reporter.info(`Watching ${label}.`);
   const close = async () => {
+    reporter.close();
     await Promise.all(handles.map((handle) => handle.close()));
     process.exit(0);
   };
@@ -177,7 +194,7 @@ function installShutdown(handles: WatchHandle[], label: string) {
 async function main() {
   const parsed = parseCli(process.argv.slice(2));
   if (!parsed) {
-    console.log(help);
+    reporter.info(help);
     return;
   }
   const projectRoot = process.cwd();
@@ -268,7 +285,7 @@ async function main() {
         );
       } catch (error) {
         if (category !== "all") throw error;
-        console.error("Failed to start automs:", error);
+        reporter.error("Failed to start automs:", error);
       }
     }
   }
@@ -276,6 +293,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
+  reporter.close();
+  reporter.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
 });

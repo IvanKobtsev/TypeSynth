@@ -50,6 +50,7 @@ export type TypeSynthJob<TChanges = FileChange[]> = {
 
 export type RegistryAutomOptions = {
   useManualRegistration?: boolean;
+  debounceMs?: number;
 };
 
 export type TypeSynthAutoms = {

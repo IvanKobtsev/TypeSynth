@@ -139,6 +139,7 @@ test("generates registry automs with inferred and manual registrations", async (
 
     const result = await run(["automs"], folder);
     assert.equal(result.code, 0, result.stderr);
+    assert.doesNotMatch(result.stderr, /non-inferable usage/);
     const generated = await readFile(
       path.join(folder, "tsynth-gen", "registry", "modalRegistry.gen.ts"),
       "utf8",
@@ -151,6 +152,104 @@ test("generates registry automs with inferred and manual registrations", async (
     assert.match(generated, /Confirmation = "Confirmation"/);
     assert.match(generated, /Schedule = "Schedule"/);
     assert.match(generated, /\[ModalType\.Confirmation\]: ConfirmationModal/);
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+});
+
+test("reports an unknown registry before declaration-shape errors", async () => {
+  const folder = await mkdtemp(
+    path.join(os.tmpdir(), "typesynth-registry-error-test-"),
+  );
+  try {
+    const source = path.join(folder, "src");
+    await import("node:fs/promises").then(({ mkdir }) => mkdir(source));
+    await writeFile(
+      path.join(folder, "tsconfig.json"),
+      JSON.stringify({ include: ["src/**/*"] }),
+    );
+    await writeFile(
+      path.join(folder, "typesynth.config.ts"),
+      "export default { automs: { registry: {} } };",
+    );
+    await writeFile(
+      path.join(source, "wrong.ts"),
+      "/** @register Missing */\nexport interface WrongRegistration {}",
+    );
+    const result = await run(["automs"], folder);
+    assert.equal(result.code, 1);
+    assert.match(
+      result.stderr,
+      /@register references unknown registry "Missing"/,
+    );
+    assert.doesNotMatch(
+      result.stderr,
+      /requires a top-level named runtime export/,
+    );
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+});
+
+test("registry sessions reuse their project for ordinary source edits", async () => {
+  const folder = await mkdtemp(
+    path.join(os.tmpdir(), "typesynth-registry-session-test-"),
+  );
+  try {
+    const source = path.join(folder, "src");
+    await import("node:fs/promises").then(({ mkdir }) => mkdir(source));
+    await writeFile(
+      path.join(folder, "tsconfig.json"),
+      JSON.stringify({ include: ["src/**/*"] }),
+    );
+    await writeFile(
+      path.join(source, "core.ts"),
+      "/** @registry Modal */\nexport interface ModalProps {}",
+    );
+    const modalPath = path.join(source, "modal.ts");
+    await writeFile(
+      modalPath,
+      "/** @register Modal */\nexport const FirstModal = () => null;",
+    );
+    const { RegistryAutomSession } =
+      await import("../dist/src/registry-autom.js");
+    const session = new RegistryAutomSession(folder, {
+      useManualRegistration: true,
+    });
+    try {
+      const initial = await session.rebuild();
+      await writeFile(
+        modalPath,
+        "/** @register Modal */\nexport const SecondModal = () => null;",
+      );
+      const incremental = await session.applyChanges([
+        { path: "src/modal.ts", type: "change", source: "file" },
+      ]);
+      assert.equal(initial.mode, "full");
+      assert.equal(incremental.mode, "incremental");
+      assert.equal(incremental.projectGeneration, initial.projectGeneration);
+      assert.equal(incremental.scannedFiles, 1);
+      const output = await readFile(
+        path.join(folder, "tsynth-gen", "registry", "modalRegistry.gen.ts"),
+        "utf8",
+      );
+      assert.match(output, /Second = "Second"/);
+      assert.doesNotMatch(output, /First =/);
+      await writeFile(
+        path.join(source, "core.ts"),
+        "/** @registry Modal */\nexport interface ModalProps { changed: true }",
+      );
+      const structural = await session.applyChanges([
+        { path: "src/core.ts", type: "change", source: "file" },
+      ]);
+      assert.equal(structural.mode, "full");
+      assert.equal(
+        structural.projectGeneration,
+        incremental.projectGeneration + 1,
+      );
+    } finally {
+      session.dispose();
+    }
   } finally {
     await rm(folder, { recursive: true, force: true });
   }
