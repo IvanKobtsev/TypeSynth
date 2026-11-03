@@ -11,7 +11,7 @@ export async function getJson(source: string) {
   if (source.startsWith("http://") || source.startsWith("https://")) {
     let response: Response;
     try {
-      response = await fetch(source, { agent });
+      response = await fetch(source, { agent: (url) => url.protocol === "https:" ? agent : undefined });
     } catch (err) {
       throw new Error(`Failed to fetch JSON from URL: ${err}`);
     }
