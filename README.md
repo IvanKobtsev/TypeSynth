@@ -1,86 +1,105 @@
 # TypeSynth
 
-TypeSynth generates source files from your existing TypeScript project structure. It supports unrestricted TypeScript generators and the Handlebars generation workflow from hbs-magic.
+Generate source files with Handlebars templates, shared helpers, and TypeScript generation scripts.
 
-## Installation
-
-```bash
+```sh
 npm install --save-dev typesynth
 ```
 
-or
+## Jobs
 
-```bash
-yarn add -D typesynth
-```
-
-## Configured generators
-
-Create `typesynth.config.ts` in the project root:
+Create `typesynth.config.ts` in your project root:
 
 ```ts
-import { defineConfig, hbsGenerator } from "typesynth";
+import { defineJobs } from "typesynth";
 
-export default defineConfig({
-  jobs: {
-    assets: {
-      generate: "./scripts/generate-assets.ts",
-    },
-    api: {
-      generate: hbsGenerator({
-        sources: "./generation/api",
-        output: "./src/api.gen.ts",
-      }),
-    },
+export default defineJobs({
+  signalR: {
+    sources: "./generation/signal-r",
+    output: "./src/clients/signal-r",
+    overrides: { dtos: "./generation/custom-dtos.hbs" },
   },
 });
 ```
 
-Run every job or a named subset:
-
-```bash
-tsynth gen
-tsynth gen assets api
+```sh
+ typesynth generate          # All jobs
+ typesynth generate signalR  # Selected jobs
 ```
 
-## Generator scripts
+`tsynth` is an equivalent binary alias. Paths resolve relative to the config directory. Paths beginning with `@/` resolve through your tsconfig `paths` mappings, including inherited mappings and `baseUrl`; they do not automatically mean the project root.
 
-A generator owns its output and may use any TypeScript APIs or libraries:
+## Multiple files
+
+A sources folder can contain:
+
+```text
+main.ts
+input-data.json
+preparation-script.ts
+hbs-helpers.ts
+template_partial_header.hbs
+templates/
+  hubs.hbs
+  dtos.hbs
+  hubContract.hbs
+```
+
+Only `main.ts` and the templates it uses are required, plus an input data source. The default export of `main.ts` controls which files are generated:
 
 ```ts
-import type { GeneratorScript } from "typesynth";
+import type { GeneratorScriptProps } from "typesynth";
 
-const generate: GeneratorScript = async ({ projectRoot, jobName }) => {
-  // Inspect the project, render Handlebars, or write raw files here.
-  console.log(projectRoot, jobName);
-};
+export default async function main({ data, generate }: GeneratorScriptProps) {
+  await generate("hubs", data, "./hubs.ts");
+  await generate("dtos", data, "./DTOs.ts");
 
-export default generate;
+  for (const [name, hub] of Object.entries(data["x-signal-r-client"].hubs)) {
+    await generate("hubContract", hub, `./${name}/${name}Contract.ts`);
+  }
+}
 ```
 
-## Handlebars generation
+`generate(name, data, relativeOutputPath)` returns a promise. Await each call. Names omit `.hbs`; nested names such as `contracts/hub` are supported. Each call uses exactly its supplied data, with `magic__checksum` added as a SHA-256 checksum of that data. Output paths resolve within the job's output directory; parent directories are created automatically. Absolute paths and paths escaping that directory are rejected.
 
-If you want a simple template-driven generation, TypeSynth got you covered with its Handlebars CLI integration:
+Helpers and partials load once and are shared within a job, isolated from other jobs. `hbs-helpers.ts` default-exports an object of helper functions. Root-level `template_partial_header.hbs` registers the `header` partial. Preparation runs once per job. `GeneratorScriptProps<TData>` optionally types your input; props also include `projectRoot` and `jobName`.
 
-```bash
-tsynth hbs --sources=gen/input --output=src/result.gen.ts
-tsynth hbs --sources=gen/client --input=https://example.com/schema.json --output=src/client.gen.ts
+See [the multi-file example](examples/multi-file/typesynth.config.ts) for shared helpers and an override. Run it from `examples/multi-file` with `typesynth generate` after installing the package.
+
+## Input and overrides
+
+Jobs accept `input` (a JSON path or HTTP(S) URL) and `formatting` (defaults to `true`). Data priority is explicit `input`, the result of the default-exported function in `preparation-script.ts`, then `input-data.json`. Preparation still runs when explicit input is supplied.
+
+`overrides` maps template names to replacement `.hbs` paths, resolved relative to the config directory or through tsconfig aliases. Overrides may introduce templates absent from `templates/`.
+
+## Direct CLI
+
+Direct jobs execute the same pipeline without a config file:
+
+```sh
+typesynth generate --sources=./generation --output=./src/generated --override=hubs=./custom-hubs.hbs --override=dtos=./custom-dtos.hbs
 ```
 
-The sources folder may contain:
+Repeat `--override=name=path` as needed. Quote the entire argument for paths containing spaces. Duplicate names are rejected. Direct paths resolve from the current directory. Add `--input=./schema.json` or `--disable-formatting` as needed. Direct options cannot be mixed with configured job names.
 
-- `template.hbs` (required)
-- `input-data.json`
-- `preparation-script.ts`, default-exporting a function that can prepare the template data
-- `hbs-helpers.ts`, default-exporting an object of Handlebars helpers
-- `template_partial_*.hbs`
+## Single-file templates
 
-Input priority is `--input`, the preparation script result, then `input-data.json`.
+Without `main.ts`, TypeSynth renders `sources/template.hbs` and treats `output` as a file path. Existing helpers, partials, and input loading still apply. The override name for this template is `template`.
 
-## CLI output
+Generated JS/TS files use oxfmt; C# uses CSharpier. Unsupported extensions require formatting to be disabled. Generation stops on failure; already written files remain, and stale outputs are not deleted.
 
-Interactive terminals show a loading spinner while TypeSynth generates. Redirected and CI output uses stable `Processing …` lines instead. Successful generation is green, warnings are yellow, and errors are red. TypeSynth respects `NO_COLOR` and `FORCE_COLOR`.
+## Migration
+
+Replace `defineConfig({ jobs: ... })` with `defineJobs({ ... })`, and replace `hbsGenerator(...)` jobs with their literal options. Unrestricted generator jobs are removed. Replace `tsynth gen` and `tsynth hbs` with `typesynth generate`. Multi-file generation scripts belong in `sources/main.ts`.
+
+## Development
+
+```sh
+npm test
+```
+
+This builds the package and runs the Node test suite.
 
 ## License
 
-[MIT](LICENSE) © Ivan Kobtsev
+[MIT](LICENSE)

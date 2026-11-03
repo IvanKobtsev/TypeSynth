@@ -1,36 +1,15 @@
-import fs from "node:fs";
 import path from "node:path";
 import { getDefaultExport } from "./file-helpers.js";
-import { TypeSynthConfig } from "./types.js";
+import type { TypeSynthJobs } from "./types.js";
 
 export const defaultConfigFile = "typesynth.config.ts";
-
-export function defineConfig(config: TypeSynthConfig): TypeSynthConfig {
-  return config;
+export function defineJobs<T extends TypeSynthJobs>(jobs: T): T {
+  return jobs;
 }
-
-export async function loadConfig(projectRoot: string): Promise<{
-  config: TypeSynthConfig;
-  configPath: string;
-}> {
+export async function loadConfig(projectRoot: string) {
   const configPath = path.join(projectRoot, defaultConfigFile);
-  if (!fs.existsSync(configPath)) {
-    throw new Error(
-      `TypeSynth configuration not found: ${configPath}\nCreate ${defaultConfigFile} or use direct Handlebars flags with \"tsynth hbs\".`,
-    );
-  }
-
-  const config = await getDefaultExport(configPath);
-  if (!config || typeof config !== "object") {
-    throw new Error(
-      `${defaultConfigFile} must default-export a TypeSynth configuration.`,
-    );
-  }
-
-  config.jobs ??= {};
-  if (Object.keys(config.jobs).length === 0) {
-    throw new Error(`${defaultConfigFile} must define at least one job.`);
-  }
-
-  return { config, configPath };
+  const jobs = await getDefaultExport(configPath);
+  if (!jobs || typeof jobs !== "object" || Array.isArray(jobs) || !Object.keys(jobs).length)
+    throw new Error(`${defaultConfigFile} must default-export a nonempty job map.`);
+  return { jobs: jobs as TypeSynthJobs, configPath };
 }

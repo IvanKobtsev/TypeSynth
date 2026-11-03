@@ -1,19 +1,13 @@
+import { createHash } from "node:crypto";
 export async function getMagicChecksum(text: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(text);
-
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return createHash("sha256").update(text).digest("hex");
 }
-
-export { defineConfig } from "./config.js";
-export { hbsGenerator } from "./hbs-generator.js";
-export type { HbsGeneratorOptions } from "./hbs-generator.js";
+export { defineJobs } from "./config.js";
 export type {
+  Generate,
   GeneratorContext,
+  GeneratorScriptProps,
   GeneratorScript,
-  TypeSynthConfig,
   TypeSynthJob,
+  TypeSynthJobs,
 } from "./types.js";
