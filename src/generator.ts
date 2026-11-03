@@ -1,11 +1,9 @@
 import path from "node:path";
 import { getDefaultExport } from "./file-helpers.js";
 import {
-  FileChange,
   GeneratorContext,
   GeneratorScript,
   TypeSynthJob,
-  WatcherScript,
 } from "./types.js";
 
 async function resolveScript<T extends Function>(
@@ -24,13 +22,13 @@ async function resolveScript<T extends Function>(
   return loaded as T;
 }
 
-export async function runGenerator<TChanges>(
+export async function runGenerator(
   jobName: string,
-  job: TypeSynthJob<TChanges>,
+  job: TypeSynthJob,
   configDirectory: string,
-  context: GeneratorContext<TChanges>,
+  context: GeneratorContext,
 ) {
-  const generator = await resolveScript<GeneratorScript<TChanges>>(
+  const generator = await resolveScript<GeneratorScript>(
     job.generate,
     configDirectory,
     `Generator for job \"${jobName}\"`,
@@ -38,20 +36,3 @@ export async function runGenerator<TChanges>(
   await generator(context);
 }
 
-export async function runWatcherScript<TChanges>(
-  jobName: string,
-  job: TypeSynthJob<TChanges>,
-  configDirectory: string,
-  events: FileChange[],
-): Promise<TChanges | FileChange[] | false> {
-  if (!job.watch?.script) return events;
-  const watcher = await resolveScript<WatcherScript<TChanges>>(
-    job.watch.script,
-    configDirectory,
-    `Watcher for job \"${jobName}\"`,
-  );
-  return await watcher(events, {
-    projectRoot: configDirectory,
-    jobName,
-  });
-}

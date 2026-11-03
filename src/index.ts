@@ -12,16 +12,8 @@ export { defineConfig } from "./config.js";
 export { hbsGenerator } from "./hbs-generator.js";
 export type { HbsGeneratorOptions } from "./hbs-generator.js";
 export type {
-  FileChange,
-  FileChangeType,
   GeneratorContext,
   GeneratorScript,
-  GeneratorTrigger,
-  RegistryAutomOptions,
-  TypeSynthAutoms,
   TypeSynthConfig,
   TypeSynthJob,
-  TypeSynthWatchOptions,
-  WatcherContext,
-  WatcherScript,
 } from "./types.js";

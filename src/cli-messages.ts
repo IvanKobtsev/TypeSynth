@@ -72,7 +72,7 @@ Data source priority:
 
 Auto-formatting:
   Output files are automatically formatted based on extension:
-    .ts .tsx .js .jsx  →  Prettier
+    .ts .tsx .js .jsx  →  oxfmt
     .cs                →  CSharpier
 
 Examples:

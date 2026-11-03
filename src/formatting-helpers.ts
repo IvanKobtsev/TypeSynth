@@ -1,23 +1,19 @@
-﻿import { execSync } from "node:child_process";
+﻿import { execFile, execSync } from "node:child_process";
 import path from "path";
-import prettier from "prettier";
+import { createRequire } from "node:module";
+import { promisify } from "node:util";
 import fs from "fs";
 
 const jsExtensions = [".ts", ".tsx", ".js", ".jsx"];
-export async function formatJsFileWithPrettier(sourcePath: string) {
+const execFileAsync = promisify(execFile);
+const require = createRequire(import.meta.url);
+const oxfmtCli = path.join(path.dirname(require.resolve("oxfmt/package.json")), "bin", "oxfmt");
+
+export async function formatJsFileWithOxfmt(sourcePath: string) {
   const filePath = path.resolve(sourcePath);
-  const source = fs.readFileSync(filePath, "utf8");
-
-  const options = await prettier.resolveConfig(filePath);
-
-  const formatted = await prettier.format(source, {
-    ...options,
-    filepath: filePath,
+  await execFileAsync(process.execPath, [oxfmtCli, filePath], {
+    cwd: path.dirname(filePath),
   });
-
-  if (formatted !== source) {
-    fs.writeFileSync(filePath, formatted, "utf8");
-  }
 }
 
 const csExtensions = [".cs"];
@@ -55,7 +51,7 @@ interface OutputFileFormatter {
 const outputFileTypeMap: Record<OutputFileType, OutputFileFormatter> = {
   [OutputFileType.JavaScript]: {
     extensions: jsExtensions,
-    formatterFunc: formatJsFileWithPrettier,
+    formatterFunc: formatJsFileWithOxfmt,
   },
   [OutputFileType.Csharp]: {
     extensions: csExtensions,
@@ -65,7 +61,7 @@ const outputFileTypeMap: Record<OutputFileType, OutputFileFormatter> = {
 
 /*
  * Detects the file type based on extension and formats it with the appropriate formatter.
- * Currently supports JavaScript/TypeScript files with Prettier and C# files with CSharpier.
+ * Currently supports JavaScript/TypeScript files with oxfmt and C# files with CSharpier.
  */
 export async function formatSourceFile(filePath: string) {
   const ext = filePath.slice(filePath.lastIndexOf("."));

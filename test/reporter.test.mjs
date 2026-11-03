@@ -16,10 +16,10 @@ test("reporter emits stable uncolored output outside a TTY", async () => {
   const stdout = stream();
   const stderr = stream();
   const reporter = new CliReporter({ stdout, stderr, env: {} });
-  await reporter.task("one", "registry autom", async () => {}, "Generated.");
+  await reporter.task("one", "generation job", async () => {}, "Generated.");
   reporter.warn("Warning.");
   reporter.error("Error.");
-  assert.equal(stderr.output, "Processing registry autom…\nWarning.\nError.\n");
+  assert.equal(stderr.output, "Processing generation job…\nWarning.\nError.\n");
   assert.equal(stdout.output, "Generated.\n");
   assert.doesNotMatch(stdout.output + stderr.output, /\u001b\[/);
 });
